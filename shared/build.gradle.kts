@@ -45,7 +45,10 @@ kotlin {
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.serialization.kotlinx.json)
-            api(libs.bitcoin.kmp)
+            // `implementation`, NOT `api`: the ACINQ engine is confined to the
+            // adapter package and must never be re-exported to consumers. The
+            // boundary-guard task (below, wired into `check`) enforces this.
+            implementation(libs.bitcoin.kmp)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -74,3 +77,7 @@ publishing {
         }
     }
 }
+
+// Engine-boundary guard tasks (fr.acinq.* confinement + no-re-export), wired
+// into `check`. Extracted to keep this build script focused on module config.
+apply(from = rootProject.file("gradle/engine-boundary.gradle.kts"))

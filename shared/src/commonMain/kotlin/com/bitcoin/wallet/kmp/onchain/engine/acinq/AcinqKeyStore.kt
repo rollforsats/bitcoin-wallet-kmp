@@ -11,8 +11,14 @@ import fr.acinq.bitcoin.BlockHash
 import fr.acinq.bitcoin.DeterministicWallet
 import fr.acinq.bitcoin.MnemonicCode
 
-/** [KeyStore] backed by ACINQ bitcoin-kmp. Confines all `fr.acinq.*` usage. */
-class AcinqKeyStore(
+/**
+ * [KeyStore] backed by ACINQ bitcoin-kmp. Confines all `fr.acinq.*` usage.
+ *
+ * `internal`: consumers wire the wallet through [com.bitcoin.wallet.kmp.WalletFactory]
+ * and depend only on the [KeyStore] port — the concrete engine adapter is never
+ * visible outside this module.
+ */
+internal class AcinqKeyStore(
     /** Entropy size in bytes: 16 → 12 words, 32 → 24 words. */
     private val entropyBytes: Int = 16,
 ) : KeyStore {
