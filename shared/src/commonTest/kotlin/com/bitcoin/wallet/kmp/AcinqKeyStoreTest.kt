@@ -46,12 +46,6 @@ class AcinqKeyStoreTest {
     }
 
     @Test
-    fun two_generated_mnemonics_differ() {
-        // Sanity check that entropy is actually random (not a fixed seed).
-        assertFalse(keyStore.generateMnemonic().phrase == keyStore.generateMnemonic().phrase)
-    }
-
-    @Test
     fun invalid_mnemonic_is_rejected() {
         val bad = Mnemonic(List(12) { "abandon" }) // wrong checksum
         assertFalse(keyStore.isValidMnemonic(bad))

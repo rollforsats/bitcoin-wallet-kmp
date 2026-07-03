@@ -67,4 +67,18 @@ class OnChainWalletTest {
         val error = assertIs<WalletError.Engine>(failure.error)
         assertTrue(error.reason.contains("boom"))
     }
+
+    @Test
+    fun restore_maps_throwing_validation_to_engine_error() {
+        val throwing = object : KeyStore {
+            override fun generateMnemonic() = fakeMnemonic
+            override fun isValidMnemonic(mnemonic: Mnemonic): Boolean =
+                throw IllegalStateException("validate boom")
+            override fun firstReceiveAddress(mnemonic: Mnemonic, network: Network) = fakeAddress
+        }
+        val result = wallet(throwing).restore(fakeMnemonic)
+        val failure = assertIs<WalletResult.Failure>(result)
+        val error = assertIs<WalletError.Engine>(failure.error)
+        assertTrue(error.reason.contains("validate boom"))
+    }
 }

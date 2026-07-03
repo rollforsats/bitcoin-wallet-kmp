@@ -29,7 +29,15 @@ class OnChainWallet(
 
     /** Restore from an existing mnemonic, validating it first. */
     fun restore(mnemonic: Mnemonic): WalletResult<NewWallet> {
-        if (!keyStore.isValidMnemonic(mnemonic)) {
+        // A throwing KeyStore maps to WalletError.Engine so restore() never throws.
+        val isValid = try {
+            keyStore.isValidMnemonic(mnemonic)
+        } catch (t: Throwable) {
+            return WalletResult.Failure(
+                WalletError.Engine(t.message ?: t::class.simpleName ?: "engine error")
+            )
+        }
+        if (!isValid) {
             return WalletResult.Failure(WalletError.InvalidInput("invalid mnemonic"))
         }
         return runEngine {
