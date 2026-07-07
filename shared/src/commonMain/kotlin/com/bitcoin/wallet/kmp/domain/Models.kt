@@ -8,7 +8,17 @@ enum class Network {
 }
 
 /** BIP39 mnemonic as an ordered word list; [phrase] is the space-joined form. */
-data class Mnemonic(val words: List<String>) {
+// Keeps the generated `copy()` as private as the primary constructor, so `copy()`
+// can't be used to bypass the defensive copy in the public secondary constructor.
+@ConsistentCopyVisibility
+data class Mnemonic private constructor(val words: List<String>) {
+    /**
+     * Defensively copies [words] so a caller's mutable backing list can't mutate
+     * this value object after construction — [phrase], equality, and hashCode stay
+     * stable. The primary constructor is private and takes the already-copied list.
+     */
+    constructor(words: Iterable<String>) : this(words.toList())
+
     val phrase: String get() = words.joinToString(" ")
 
     init {
