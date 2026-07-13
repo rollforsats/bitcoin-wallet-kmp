@@ -1,5 +1,6 @@
 package com.bitcoin.wallet.kmp
 
+import com.bitcoin.wallet.kmp.domain.AddressChain
 import com.bitcoin.wallet.kmp.domain.Mnemonic
 import com.bitcoin.wallet.kmp.domain.Network
 import com.bitcoin.wallet.kmp.onchain.engine.acinq.AcinqKeyStore
@@ -26,16 +27,23 @@ class AcinqKeyStoreTest {
     fun bip84_mainnet_first_address_matches_official_vector() {
         // From BIP84 spec, Account 0, first receiving address.
         val expected = "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu"
-        val actual = keyStore.firstReceiveAddress(testVectorMnemonic, Network.MAINNET)
+        val actual = keyStore.deriveAddress(testVectorMnemonic, Network.MAINNET, AddressChain.EXTERNAL, 0)
         assertEquals(expected, actual.value)
     }
 
     @Test
     fun bip84_signet_first_address_is_native_segwit_tb() {
-        val address = keyStore.firstReceiveAddress(testVectorMnemonic, Network.SIGNET)
+        val address = keyStore.deriveAddress(testVectorMnemonic, Network.SIGNET, AddressChain.EXTERNAL, 0)
         // Same witness program as mainnet, signet/testnet HRP "tb".
         assertEquals("tb1q6rz28mcfaxtmd6v789l9rrlrusdprr9pqcpvkl", address.value)
         assertTrue(address.value.startsWith("tb1q"), "signet P2WPKH must start with tb1q")
+    }
+
+    @Test
+    fun negative_index_is_rejected() {
+        assertFailsWith<IllegalArgumentException> {
+            keyStore.deriveAddress(testVectorMnemonic, Network.MAINNET, AddressChain.EXTERNAL, -1)
+        }
     }
 
     @Test

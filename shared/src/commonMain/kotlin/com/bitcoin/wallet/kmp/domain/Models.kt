@@ -7,6 +7,12 @@ enum class Network {
     REGTEST,
 }
 
+/** BIP84 chain: EXTERNAL = receive (`…/0/i`), INTERNAL = change (`…/1/i`). */
+enum class AddressChain {
+    EXTERNAL,
+    INTERNAL,
+}
+
 /** BIP39 mnemonic as an ordered word list; [phrase] is the space-joined form. */
 // Keeps the generated `copy()` as private as the primary constructor, so `copy()`
 // can't be used to bypass the defensive copy in the public secondary constructor.
