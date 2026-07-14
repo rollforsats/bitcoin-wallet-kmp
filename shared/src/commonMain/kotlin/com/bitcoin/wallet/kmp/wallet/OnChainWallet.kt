@@ -1,5 +1,6 @@
 package com.bitcoin.wallet.kmp.wallet
 
+import com.bitcoin.wallet.kmp.domain.AddressChain
 import com.bitcoin.wallet.kmp.domain.BitcoinAddress
 import com.bitcoin.wallet.kmp.domain.Mnemonic
 import com.bitcoin.wallet.kmp.domain.Network
@@ -24,7 +25,7 @@ class OnChainWallet(
     /** Generate a new mnemonic and derive its first receive address. */
     fun create(): WalletResult<NewWallet> = runEngine {
         val mnemonic = keyStore.generateMnemonic()
-        NewWallet(mnemonic, keyStore.firstReceiveAddress(mnemonic, network))
+        NewWallet(mnemonic, firstReceiveAddress(mnemonic))
     }
 
     /** Restore from an existing mnemonic, validating it first. */
@@ -41,9 +42,12 @@ class OnChainWallet(
             return WalletResult.Failure(WalletError.InvalidInput("invalid mnemonic"))
         }
         return runEngine {
-            NewWallet(mnemonic, keyStore.firstReceiveAddress(mnemonic, network))
+            NewWallet(mnemonic, firstReceiveAddress(mnemonic))
         }
     }
+
+    private fun firstReceiveAddress(mnemonic: Mnemonic): BitcoinAddress =
+        keyStore.deriveAddress(mnemonic, network, AddressChain.EXTERNAL, 0)
 
     private inline fun <T> runEngine(block: () -> T): WalletResult<T> =
         runCatching { WalletResult.Success(block()) }

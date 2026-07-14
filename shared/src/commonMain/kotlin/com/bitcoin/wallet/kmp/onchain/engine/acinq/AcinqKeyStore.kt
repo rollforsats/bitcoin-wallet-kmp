@@ -1,5 +1,6 @@
 package com.bitcoin.wallet.kmp.onchain.engine.acinq
 
+import com.bitcoin.wallet.kmp.domain.AddressChain
 import com.bitcoin.wallet.kmp.domain.BitcoinAddress
 import com.bitcoin.wallet.kmp.domain.Mnemonic
 import com.bitcoin.wallet.kmp.domain.Network
@@ -41,16 +42,27 @@ internal class AcinqKeyStore(
     override fun isValidMnemonic(mnemonic: Mnemonic): Boolean =
         runCatching { MnemonicCode.validate(mnemonic.words) }.isSuccess
 
-    override fun firstReceiveAddress(mnemonic: Mnemonic, network: Network): BitcoinAddress {
+    override fun deriveAddress(
+        mnemonic: Mnemonic,
+        network: Network,
+        chain: AddressChain,
+        index: Int,
+    ): BitcoinAddress {
+        require(index >= 0) { "address index must be >= 0, was $index" }
+
         // BIP39 mnemonic -> seed -> BIP32 master key.
         val seed = MnemonicCode.toSeed(mnemonic.words, passphrase = "")
         val master = DeterministicWallet.generate(seed)
 
-        // BIP84 external receive path: m/84'/coin'/0'/0/0.
+        // BIP84 path: m/84'/coin'/account'/chain/index.
         // coin' = 0' for mainnet, 1' for test/signet/regtest (BIP44 registered coin type).
+        // chain 0 = external (receive), 1 = internal (change).
         val coinType = if (network == Network.MAINNET) 0 else 1
-        val path = "m/84'/$coinType'/0'/0/0"
-        val derived = master.derivePrivateKey(path)
+        val chainSegment = when (chain) {
+            AddressChain.EXTERNAL -> 0
+            AddressChain.INTERNAL -> 1
+        }
+        val derived = master.derivePrivateKey("m/84'/$coinType'/0'/$chainSegment/$index")
 
         // P2WPKH (native SegWit) address for the network's chain hash.
         val address = Bitcoin.computeP2WpkhAddress(derived.publicKey, network.chainHash())

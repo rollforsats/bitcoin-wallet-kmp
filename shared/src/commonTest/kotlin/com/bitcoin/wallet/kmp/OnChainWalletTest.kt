@@ -1,5 +1,6 @@
 package com.bitcoin.wallet.kmp
 
+import com.bitcoin.wallet.kmp.domain.AddressChain
 import com.bitcoin.wallet.kmp.domain.BitcoinAddress
 import com.bitcoin.wallet.kmp.domain.Mnemonic
 import com.bitcoin.wallet.kmp.domain.Network
@@ -26,7 +27,7 @@ class OnChainWalletTest {
     ) : KeyStore {
         override fun generateMnemonic() = mnemonic
         override fun isValidMnemonic(mnemonic: Mnemonic) = mnemonic.phrase in validMnemonics
-        override fun firstReceiveAddress(mnemonic: Mnemonic, network: Network) = address
+        override fun deriveAddress(mnemonic: Mnemonic, network: Network, chain: AddressChain, index: Int) = address
     }
 
     private fun wallet(keyStore: KeyStore) = OnChainWallet(keyStore, Network.SIGNET)
@@ -59,8 +60,12 @@ class OnChainWalletTest {
         val throwing = object : KeyStore {
             override fun generateMnemonic() = fakeMnemonic
             override fun isValidMnemonic(mnemonic: Mnemonic) = true
-            override fun firstReceiveAddress(mnemonic: Mnemonic, network: Network): BitcoinAddress =
-                throw IllegalStateException("boom")
+            override fun deriveAddress(
+                mnemonic: Mnemonic,
+                network: Network,
+                chain: AddressChain,
+                index: Int,
+            ): BitcoinAddress = throw IllegalStateException("boom")
         }
         val result = wallet(throwing).create()
         val failure = assertIs<WalletResult.Failure>(result)
@@ -74,7 +79,7 @@ class OnChainWalletTest {
             override fun generateMnemonic() = fakeMnemonic
             override fun isValidMnemonic(mnemonic: Mnemonic): Boolean =
                 throw IllegalStateException("validate boom")
-            override fun firstReceiveAddress(mnemonic: Mnemonic, network: Network) = fakeAddress
+            override fun deriveAddress(mnemonic: Mnemonic, network: Network, chain: AddressChain, index: Int) = fakeAddress
         }
         val result = wallet(throwing).restore(fakeMnemonic)
         val failure = assertIs<WalletResult.Failure>(result)
