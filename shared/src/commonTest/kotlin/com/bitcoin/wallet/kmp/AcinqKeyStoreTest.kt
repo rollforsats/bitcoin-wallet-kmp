@@ -32,6 +32,24 @@ class AcinqKeyStoreTest {
     }
 
     @Test
+    fun bip84_mainnet_second_receive_address_matches_official_vector() {
+        // From BIP84 spec, Account 0, second receiving address (m/84'/0'/0'/0/1):
+        // proves index advances the external chain, not just index 0.
+        val expected = "bc1qnjg0jd8228aq7egyzacy8cys3knf9xvrerkf9g"
+        val actual = keyStore.deriveAddress(testVectorMnemonic, Network.MAINNET, AddressChain.EXTERNAL, 1)
+        assertEquals(expected, actual.value)
+    }
+
+    @Test
+    fun bip84_mainnet_first_change_address_matches_official_vector() {
+        // From BIP84 spec, Account 0, first change address (m/84'/0'/0'/1/0):
+        // proves the INTERNAL chain maps to the …/1/i change branch.
+        val expected = "bc1q8c6fshw2dlwun7ekn9qwf37cu2rn755upcp6el"
+        val actual = keyStore.deriveAddress(testVectorMnemonic, Network.MAINNET, AddressChain.INTERNAL, 0)
+        assertEquals(expected, actual.value)
+    }
+
+    @Test
     fun bip84_signet_first_address_is_native_segwit_tb() {
         val address = keyStore.deriveAddress(testVectorMnemonic, Network.SIGNET, AddressChain.EXTERNAL, 0)
         // Same witness program as mainnet, signet/testnet HRP "tb".
