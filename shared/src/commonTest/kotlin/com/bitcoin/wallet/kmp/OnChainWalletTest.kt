@@ -78,9 +78,17 @@ class OnChainWalletTest {
 
     @Test
     fun isValidAddress_delegates_to_keystore_with_wallet_network() {
-        val wallet = wallet(FakeKeyStore(fakeMnemonic, fakeAddress))
+        var capturedNetwork: Network? = null
+        val capturingKeyStore = object : KeyStore by FakeKeyStore(fakeMnemonic, fakeAddress) {
+            override fun isValidAddress(address: String, network: Network): Boolean {
+                capturedNetwork = network
+                return address == fakeAddress.value
+            }
+        }
+        val wallet = wallet(capturingKeyStore)
         assertTrue(wallet.isValidAddress(fakeAddress.value))
         assertFalse(wallet.isValidAddress("something-else"))
+        assertEquals(Network.SIGNET, capturedNetwork)
     }
 
     @Test
