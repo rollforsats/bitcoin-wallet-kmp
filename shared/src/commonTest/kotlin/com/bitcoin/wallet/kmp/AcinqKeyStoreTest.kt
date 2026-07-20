@@ -114,6 +114,14 @@ class AcinqKeyStoreTest {
     }
 
     @Test
+    fun derived_addresses_validate_on_their_own_network() {
+        for (network in listOf(Network.MAINNET, Network.SIGNET)) {
+            val address = keyStore.deriveAddress(testVectorMnemonic, network, AddressChain.EXTERNAL, 0)
+            assertTrue(keyStore.isValidAddress(address.value, network), "$network address must round-trip")
+        }
+    }
+
+    @Test
     fun network_mismatched_addresses_are_rejected() {
         assertFalse(keyStore.isValidAddress("bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4", Network.SIGNET))
         assertFalse(keyStore.isValidAddress("tb1q6rz28mcfaxtmd6v789l9rrlrusdprr9pqcpvkl", Network.MAINNET))

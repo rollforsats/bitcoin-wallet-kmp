@@ -46,6 +46,9 @@ class OnChainWallet(
         }
     }
 
+    /** True iff [address] parses and belongs to this wallet's network. */
+    fun isValidAddress(address: String): Boolean = keyStore.isValidAddress(address, network)
+
     private fun firstReceiveAddress(mnemonic: Mnemonic): BitcoinAddress =
         keyStore.deriveAddress(mnemonic, network, AddressChain.EXTERNAL, 0)
 

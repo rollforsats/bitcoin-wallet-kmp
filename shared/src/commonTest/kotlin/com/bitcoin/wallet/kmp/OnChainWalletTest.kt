@@ -10,6 +10,7 @@ import com.bitcoin.wallet.kmp.port.KeyStore
 import com.bitcoin.wallet.kmp.wallet.OnChainWallet
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
@@ -73,6 +74,13 @@ class OnChainWalletTest {
         val failure = assertIs<WalletResult.Failure>(result)
         val error = assertIs<WalletError.Engine>(failure.error)
         assertTrue(error.reason.contains("boom"))
+    }
+
+    @Test
+    fun isValidAddress_delegates_to_keystore_with_wallet_network() {
+        val wallet = wallet(FakeKeyStore(fakeMnemonic, fakeAddress))
+        assertTrue(wallet.isValidAddress(fakeAddress.value))
+        assertFalse(wallet.isValidAddress("something-else"))
     }
 
     @Test
