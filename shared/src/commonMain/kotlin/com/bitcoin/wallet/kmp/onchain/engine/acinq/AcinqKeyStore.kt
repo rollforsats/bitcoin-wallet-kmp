@@ -69,6 +69,16 @@ internal class AcinqKeyStore(
         return BitcoinAddress(address)
     }
 
+    override fun isValidAddress(address: String, network: Network): Boolean =
+        runCatching {
+            // Decodes bech32 (segwit v0) / bech32m (v1+) / base58 (legacy) and
+            // checks the HRP or version byte against the network's chain.
+            // ACINQ reports the outcome as an Either: Left = decode error,
+            // Right = the decoded scriptPubKey. A valid address lands Right.
+            val decodeResult = Bitcoin.addressToPublicKeyScript(network.chainHash(), address)
+            decodeResult.isRight
+        }.getOrDefault(false)
+
     private companion object {
         /** BIP39 entropy sizes in bytes (128/160/192/224/256 bits). */
         val VALID_ENTROPY_BYTES = setOf(16, 20, 24, 28, 32)

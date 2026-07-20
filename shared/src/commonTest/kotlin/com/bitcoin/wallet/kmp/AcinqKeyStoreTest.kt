@@ -89,6 +89,37 @@ class AcinqKeyStoreTest {
     }
 
     @Test
+    fun valid_addresses_are_accepted() {
+        // BIP350 test vectors: segwit v0 is bech32, v1+ is bech32m; case-insensitive.
+        assertTrue(keyStore.isValidAddress("BC1QW508D6QEJXTDG4Y5R3ZARVARY0C5XW7KV8F3T4", Network.MAINNET))
+        assertTrue(keyStore.isValidAddress("bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4", Network.MAINNET))
+        // P2WSH (32-byte witness program); "tb" HRP serves testnet AND signet.
+        assertTrue(keyStore.isValidAddress("tb1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3q0sl5k7", Network.TESTNET))
+        assertTrue(keyStore.isValidAddress("tb1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3q0sl5k7", Network.SIGNET))
+        // Taproot (witness v1, bech32m).
+        assertTrue(keyStore.isValidAddress("bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqzk5jj0", Network.MAINNET))
+        // Base58 legacy P2PKH: the decoder intentionally accepts pre-segwit addresses.
+        assertTrue(keyStore.isValidAddress("1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2", Network.MAINNET))
+    }
+
+    @Test
+    fun invalid_addresses_are_rejected() {
+        // BIP350 invalid vectors: wrong checksum algorithm for the witness version.
+        assertFalse(keyStore.isValidAddress("bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqh2y7hd", Network.MAINNET)) // bech32 where bech32m required (v1)
+        assertFalse(keyStore.isValidAddress("bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kemeawh", Network.MAINNET)) // bech32m where bech32 required (v0)
+        assertFalse(keyStore.isValidAddress("tc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vq5zuyut", Network.MAINNET)) // invalid HRP
+        assertFalse(keyStore.isValidAddress("BC1QR508D6QEJXTDG4Y5R3ZARVARYV98GJ9P", Network.MAINNET)) // invalid program length for v0
+        assertFalse(keyStore.isValidAddress("", Network.MAINNET))
+        assertFalse(keyStore.isValidAddress("not-an-address", Network.MAINNET))
+    }
+
+    @Test
+    fun network_mismatched_addresses_are_rejected() {
+        assertFalse(keyStore.isValidAddress("bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4", Network.SIGNET))
+        assertFalse(keyStore.isValidAddress("tb1q6rz28mcfaxtmd6v789l9rrlrusdprr9pqcpvkl", Network.MAINNET))
+    }
+
+    @Test
     fun invalid_entropy_size_is_rejected_at_construction() {
         // 17 is not a BIP39 size; this used to fail cryptically deep inside ACINQ.
         assertFailsWith<IllegalArgumentException> { AcinqKeyStore(entropyBytes = 17) }

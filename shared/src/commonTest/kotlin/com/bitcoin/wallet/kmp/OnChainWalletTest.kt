@@ -28,6 +28,7 @@ class OnChainWalletTest {
         override fun generateMnemonic() = mnemonic
         override fun isValidMnemonic(mnemonic: Mnemonic) = mnemonic.phrase in validMnemonics
         override fun deriveAddress(mnemonic: Mnemonic, network: Network, chain: AddressChain, index: Int) = address
+        override fun isValidAddress(address: String, network: Network) = address == this.address.value
     }
 
     private fun wallet(keyStore: KeyStore) = OnChainWallet(keyStore, Network.SIGNET)
@@ -66,6 +67,7 @@ class OnChainWalletTest {
                 chain: AddressChain,
                 index: Int,
             ): BitcoinAddress = throw IllegalStateException("boom")
+            override fun isValidAddress(address: String, network: Network) = true
         }
         val result = wallet(throwing).create()
         val failure = assertIs<WalletResult.Failure>(result)
@@ -80,6 +82,7 @@ class OnChainWalletTest {
             override fun isValidMnemonic(mnemonic: Mnemonic): Boolean =
                 throw IllegalStateException("validate boom")
             override fun deriveAddress(mnemonic: Mnemonic, network: Network, chain: AddressChain, index: Int) = fakeAddress
+            override fun isValidAddress(address: String, network: Network) = true
         }
         val result = wallet(throwing).restore(fakeMnemonic)
         val failure = assertIs<WalletResult.Failure>(result)
