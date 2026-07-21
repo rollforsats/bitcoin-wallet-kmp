@@ -20,4 +20,10 @@ interface KeyStore {
         chain: AddressChain,
         index: Int,
     ): BitcoinAddress
+
+    /**
+     * True iff [address] parses (bech32/bech32m segwit or base58 legacy) and
+     * belongs to [network]. Never throws.
+     */
+    fun isValidAddress(address: String, network: Network): Boolean
 }

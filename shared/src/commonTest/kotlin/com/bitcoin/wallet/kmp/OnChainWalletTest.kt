@@ -10,6 +10,7 @@ import com.bitcoin.wallet.kmp.port.KeyStore
 import com.bitcoin.wallet.kmp.wallet.OnChainWallet
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
@@ -28,6 +29,7 @@ class OnChainWalletTest {
         override fun generateMnemonic() = mnemonic
         override fun isValidMnemonic(mnemonic: Mnemonic) = mnemonic.phrase in validMnemonics
         override fun deriveAddress(mnemonic: Mnemonic, network: Network, chain: AddressChain, index: Int) = address
+        override fun isValidAddress(address: String, network: Network) = address == this.address.value
     }
 
     private fun wallet(keyStore: KeyStore) = OnChainWallet(keyStore, Network.SIGNET)
@@ -66,11 +68,27 @@ class OnChainWalletTest {
                 chain: AddressChain,
                 index: Int,
             ): BitcoinAddress = throw IllegalStateException("boom")
+            override fun isValidAddress(address: String, network: Network) = true
         }
         val result = wallet(throwing).create()
         val failure = assertIs<WalletResult.Failure>(result)
         val error = assertIs<WalletError.Engine>(failure.error)
         assertTrue(error.reason.contains("boom"))
+    }
+
+    @Test
+    fun isValidAddress_delegates_to_keystore_with_wallet_network() {
+        var capturedNetwork: Network? = null
+        val capturingKeyStore = object : KeyStore by FakeKeyStore(fakeMnemonic, fakeAddress) {
+            override fun isValidAddress(address: String, network: Network): Boolean {
+                capturedNetwork = network
+                return address == fakeAddress.value
+            }
+        }
+        val wallet = wallet(capturingKeyStore)
+        assertTrue(wallet.isValidAddress(fakeAddress.value))
+        assertFalse(wallet.isValidAddress("something-else"))
+        assertEquals(Network.SIGNET, capturedNetwork)
     }
 
     @Test
@@ -80,6 +98,7 @@ class OnChainWalletTest {
             override fun isValidMnemonic(mnemonic: Mnemonic): Boolean =
                 throw IllegalStateException("validate boom")
             override fun deriveAddress(mnemonic: Mnemonic, network: Network, chain: AddressChain, index: Int) = fakeAddress
+            override fun isValidAddress(address: String, network: Network) = true
         }
         val result = wallet(throwing).restore(fakeMnemonic)
         val failure = assertIs<WalletResult.Failure>(result)

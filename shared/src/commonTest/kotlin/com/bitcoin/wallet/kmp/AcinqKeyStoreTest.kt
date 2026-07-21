@@ -10,57 +10,42 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-/**
- * AcinqKeyStore against the official BIP84 test vector. The "abandon … about"
- * mnemonic and its first mainnet address are published in BIP84.
- */
+/** AcinqKeyStore against the official vectors in [Bip84Vectors] and [AddressDecodeVectors]. */
 class AcinqKeyStoreTest {
-
-    private val testVectorMnemonic = Mnemonic(
-        ("abandon abandon abandon abandon abandon abandon " +
-            "abandon abandon abandon abandon abandon about").split(" ")
-    )
 
     private val keyStore = AcinqKeyStore()
 
     @Test
     fun bip84_mainnet_first_address_matches_official_vector() {
-        // From BIP84 spec, Account 0, first receiving address.
-        val expected = "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu"
-        val actual = keyStore.deriveAddress(testVectorMnemonic, Network.MAINNET, AddressChain.EXTERNAL, 0)
-        assertEquals(expected, actual.value)
+        val actual = keyStore.deriveAddress(Bip84Vectors.MNEMONIC, Network.MAINNET, AddressChain.EXTERNAL, 0)
+        assertEquals(Bip84Vectors.MAINNET_RECEIVE_0, actual.value)
     }
 
     @Test
     fun bip84_mainnet_second_receive_address_matches_official_vector() {
-        // From BIP84 spec, Account 0, second receiving address (m/84'/0'/0'/0/1):
-        // proves index advances the external chain, not just index 0.
-        val expected = "bc1qnjg0jd8228aq7egyzacy8cys3knf9xvrerkf9g"
-        val actual = keyStore.deriveAddress(testVectorMnemonic, Network.MAINNET, AddressChain.EXTERNAL, 1)
-        assertEquals(expected, actual.value)
+        // Proves index advances the external chain, not just index 0.
+        val actual = keyStore.deriveAddress(Bip84Vectors.MNEMONIC, Network.MAINNET, AddressChain.EXTERNAL, 1)
+        assertEquals(Bip84Vectors.MAINNET_RECEIVE_1, actual.value)
     }
 
     @Test
     fun bip84_mainnet_first_change_address_matches_official_vector() {
-        // From BIP84 spec, Account 0, first change address (m/84'/0'/0'/1/0):
-        // proves the INTERNAL chain maps to the …/1/i change branch.
-        val expected = "bc1q8c6fshw2dlwun7ekn9qwf37cu2rn755upcp6el"
-        val actual = keyStore.deriveAddress(testVectorMnemonic, Network.MAINNET, AddressChain.INTERNAL, 0)
-        assertEquals(expected, actual.value)
+        // Proves the INTERNAL chain maps to the …/1/i change branch.
+        val actual = keyStore.deriveAddress(Bip84Vectors.MNEMONIC, Network.MAINNET, AddressChain.INTERNAL, 0)
+        assertEquals(Bip84Vectors.MAINNET_CHANGE_0, actual.value)
     }
 
     @Test
     fun bip84_signet_first_address_is_native_segwit_tb() {
-        val address = keyStore.deriveAddress(testVectorMnemonic, Network.SIGNET, AddressChain.EXTERNAL, 0)
-        // Same witness program as mainnet, signet/testnet HRP "tb".
-        assertEquals("tb1q6rz28mcfaxtmd6v789l9rrlrusdprr9pqcpvkl", address.value)
+        val address = keyStore.deriveAddress(Bip84Vectors.MNEMONIC, Network.SIGNET, AddressChain.EXTERNAL, 0)
+        assertEquals(Bip84Vectors.SIGNET_RECEIVE_0, address.value)
         assertTrue(address.value.startsWith("tb1q"), "signet P2WPKH must start with tb1q")
     }
 
     @Test
     fun negative_index_is_rejected() {
         assertFailsWith<IllegalArgumentException> {
-            keyStore.deriveAddress(testVectorMnemonic, Network.MAINNET, AddressChain.EXTERNAL, -1)
+            keyStore.deriveAddress(Bip84Vectors.MNEMONIC, Network.MAINNET, AddressChain.EXTERNAL, -1)
         }
     }
 
@@ -85,6 +70,41 @@ class AcinqKeyStoreTest {
             val mnemonic = AcinqKeyStore(entropyBytes = bytes).generateMnemonic()
             assertEquals(words, mnemonic.words.size, "$bytes bytes should yield $words words")
             assertTrue(keyStore.isValidMnemonic(mnemonic), "$bytes-byte mnemonic must validate")
+        }
+    }
+
+    @Test
+    fun valid_addresses_are_accepted() {
+        assertTrue(keyStore.isValidAddress(AddressDecodeVectors.P2WPKH_MAINNET_UPPER, Network.MAINNET))
+        assertTrue(keyStore.isValidAddress(AddressDecodeVectors.P2WPKH_MAINNET, Network.MAINNET))
+        assertTrue(keyStore.isValidAddress(AddressDecodeVectors.P2WSH_TESTNET, Network.TESTNET))
+        assertTrue(keyStore.isValidAddress(AddressDecodeVectors.P2WSH_TESTNET, Network.SIGNET))
+        assertTrue(keyStore.isValidAddress(AddressDecodeVectors.P2TR_MAINNET, Network.MAINNET))
+        // The decoder intentionally accepts pre-segwit addresses.
+        assertTrue(keyStore.isValidAddress(AddressDecodeVectors.P2PKH_MAINNET_LEGACY, Network.MAINNET))
+    }
+
+    @Test
+    fun invalid_addresses_are_rejected() {
+        assertFalse(keyStore.isValidAddress(AddressDecodeVectors.V1_WITH_BECH32_CHECKSUM, Network.MAINNET))
+        assertFalse(keyStore.isValidAddress(AddressDecodeVectors.V0_WITH_BECH32M_CHECKSUM, Network.MAINNET))
+        assertFalse(keyStore.isValidAddress(AddressDecodeVectors.UNKNOWN_HRP, Network.MAINNET))
+        assertFalse(keyStore.isValidAddress(AddressDecodeVectors.V0_BAD_PROGRAM_LENGTH, Network.MAINNET))
+        assertFalse(keyStore.isValidAddress("", Network.MAINNET))
+        assertFalse(keyStore.isValidAddress("not-an-address", Network.MAINNET))
+    }
+
+    @Test
+    fun network_mismatched_addresses_are_rejected() {
+        assertFalse(keyStore.isValidAddress(AddressDecodeVectors.P2WPKH_MAINNET, Network.SIGNET))
+        assertFalse(keyStore.isValidAddress(Bip84Vectors.SIGNET_RECEIVE_0, Network.MAINNET))
+    }
+
+    @Test
+    fun derived_addresses_validate_on_their_own_network() {
+        for (network in listOf(Network.MAINNET, Network.SIGNET)) {
+            val address = keyStore.deriveAddress(Bip84Vectors.MNEMONIC, network, AddressChain.EXTERNAL, 0)
+            assertTrue(keyStore.isValidAddress(address.value, network), "$network address must round-trip")
         }
     }
 
