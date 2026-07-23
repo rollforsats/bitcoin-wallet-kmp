@@ -2,9 +2,11 @@ package com.bitcoin.wallet.kmp
 
 import com.bitcoin.wallet.kmp.domain.BitcoinAddress
 import com.bitcoin.wallet.kmp.domain.Mnemonic
+import com.bitcoin.wallet.kmp.domain.Network
 import com.bitcoin.wallet.kmp.domain.WalletError
 import com.bitcoin.wallet.kmp.domain.WalletResult
 import com.bitcoin.wallet.kmp.wallet.NewWallet
+import com.bitcoin.wallet.kmp.wallet.WalletSession
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -57,6 +59,12 @@ class MnemonicRedactionTest {
         assertNoSecretLeak(rendered)
         // Address is non-secret and useful for debugging — it should still show.
         assertTrue(rendered.contains(address.value), "address should remain visible: $rendered")
+    }
+
+    @Test
+    fun walletsession_toString_redacts_embedded_mnemonic() {
+        val session = WalletSession(mnemonic, FakeKeyStore(mnemonic), Network.SIGNET)
+        assertNoSecretLeak(session.toString())
     }
 
     @Test

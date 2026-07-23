@@ -52,6 +52,17 @@ class OnChainWalletTest {
     }
 
     @Test
+    fun create_maps_throwing_generation_to_engine_error() {
+        val throwingKeyStore = object : KeyStore by FakeKeyStore(fakeMnemonic) {
+            override fun generateMnemonic(): Mnemonic = throw IllegalStateException("gen boom")
+        }
+        val result = wallet(throwingKeyStore).create()
+        val failure = assertIs<WalletResult.Failure>(result)
+        val error = assertIs<WalletError.Engine>(failure.error)
+        assertTrue(error.reason.contains("gen boom"))
+    }
+
+    @Test
     fun isValidAddress_delegates_to_keystore_with_wallet_network() {
         var capturedNetwork: Network? = null
         val capturingKeyStore = object : KeyStore by FakeKeyStore(fakeMnemonic) {

@@ -51,8 +51,4 @@ class OnChainWallet(
 
     private fun firstReceiveAddress(mnemonic: Mnemonic): BitcoinAddress =
         keyStore.deriveAddress(mnemonic, network, AddressChain.EXTERNAL, 0)
-
-    private inline fun <T> runEngine(block: () -> T): WalletResult<T> =
-        runCatching { WalletResult.Success(block()) }
-            .getOrElse { WalletResult.Failure(WalletError.Engine(it.message ?: it::class.simpleName ?: "engine error")) }
 }

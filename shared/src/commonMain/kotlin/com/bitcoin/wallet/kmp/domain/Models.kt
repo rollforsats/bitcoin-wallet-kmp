@@ -13,6 +13,25 @@ enum class AddressChain {
     INTERNAL,
 }
 
+/** A derived address and its position in the BIP84 tree. */
+data class AddressInfo(
+    val address: BitcoinAddress,
+    val chain: AddressChain,
+    val index: Int,
+)
+
+/** Next-unused address index per chain. */
+data class AddressIndices(
+    val nextExternal: Int = 0,
+    val nextInternal: Int = 0,
+) {
+    init {
+        require(nextExternal >= 0 && nextInternal >= 0) {
+            "address indices must be >= 0, was ($nextExternal, $nextInternal)"
+        }
+    }
+}
+
 /** BIP39 mnemonic as an ordered word list; [phrase] is the space-joined form. */
 // Keeps the generated `copy()` as private as the primary constructor, so `copy()`
 // can't be used to bypass the defensive copy in the public secondary constructor.
